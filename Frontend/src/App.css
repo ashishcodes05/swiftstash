@@ -1,0 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Outfit:wght@100..900&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap");
+@import "tailwindcss";
+
+@theme {
+  /* Your Core Colors */
+  --color-background: #0B0F19;
+  --color-primary: #1467FF;
+  --color-secondary: #7b61ff;
+  --color-primary-accent: #4F46E5;
+  --color-secondary-accent: #38BDF8;
+  --color-text-main: #F9FAFB;
+  --color-text-secondary: #9CA3AF;
+  --color-card-bg: #111827;
+
+  /* Added for JSX Component Compatibility */
+  --color-danger: #ef4444; 
+  --color-border-subtle: rgba(255, 255, 255, 0.02); /* FIX: Softened the white border */
+}
+
+/* Custom CSS Variables used for specific dynamic states in the JSX */
+:root {
+  --shadow-menu: 0 10px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  --color-row-hover: rgba(255, 255, 255, 0.03);
+  /* Matched these row selections to your specific primary blue (#1467FF) */
+  --color-row-selected: rgba(20, 103, 255, 0.1); 
+  --color-row-selected-border: rgba(20, 103, 255, 0.3);
+}
+
+* {
+  font-family: "Inter", sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-text-secondary) transparent;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+html,
+body {
+  margin: 0;
+  background-color: var(--color-background);
+}
+
+body {
+  color: var(--color-text-main);
+}

@@ -1,0 +1,71 @@
+# =========================
+# Dependencies
+# =========================
+node_modules/
+.pnp
+.pnp.js
+
+# =========================
+# Environment Variables
+# =========================
+# Ignore all .env files containing secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Note: DO NOT ignore .env.example if you create one!
+
+# =========================
+# Vite & Frontend Build Output
+# =========================
+dist/
+dist-ssr/
+*.local
+
+# =========================
+# Backend & TypeScript Build Output
+# =========================
+# Assuming your backend TS compiles to 'build' or 'out'
+build/
+out/
+tsc-out/
+
+# =========================
+# Logs and Caches
+# =========================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.eslintcache
+.stylelintcache
+.vite/
+
+# =========================
+# Testing
+# =========================
+coverage/
+.nyc_output/
+
+# =========================
+# OS & Editor/IDE Files
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+Storage
