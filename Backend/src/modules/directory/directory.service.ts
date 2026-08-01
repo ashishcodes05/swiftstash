@@ -6,12 +6,31 @@ export class DirectoryService {
     static async getDirectoryItems(userId: string, directoryId: string) {
         const directories = await DirectoryRepository.getDirectoriesWithOwner(directoryId, userId);
         const files = await FileRepository.getFilesWithOwner(directoryId, userId);
-        return { directories, files };
+        const ancestors = await DirectoryRepository.getAncestorsWithNamesById(userId, directoryId);
+        if (ancestors.length === 0) {
+            return { directories, files, path: [{ _id: "root", name: "My Drive" }] };
+        }
+        const path = [{ _id: "root", name: "My Drive" }];
+        path.push(...ancestors.filter((ancestor) => !ancestor.name.startsWith("root-")));
+        const currentDirectoryName = await DirectoryRepository.getNameById(userId, directoryId);
+        if (currentDirectoryName) {
+            path.push({ _id: directoryId, name: currentDirectoryName });
+        }
+        return { directories, files, path };
     }
 
     static async createDirectory(userId: string, directoryName: string, parentDirectoryId: string) {
-        const directory = await DirectoryRepository.insertDirectory(directoryName, userId, parentDirectoryId);
+        const ancestors = await DirectoryRepository.getAncestorsById(userId, parentDirectoryId);
+        ancestors.push(parentDirectoryId);
+        const directory = await DirectoryRepository.insertDirectory(directoryName, userId, parentDirectoryId, ancestors);
         return directory;
+    }
+
+    static async updateParentDirectorySize(userId: string, parentDirectoryId: string, deltaSize: number) {
+        if(!parentDirectoryId) return;
+        const ancestorIds = await DirectoryRepository.getAncestorsById(userId, parentDirectoryId);
+        ancestorIds.push(parentDirectoryId);
+        await DirectoryRepository.updateSizeByIds(ancestorIds, deltaSize);
     }
 
     static async renameDirectory(userId: string, directoryId: string, newName: string) {

@@ -1,8 +1,7 @@
 import type { ClientSession } from "mongoose";
-import type { DirectoryMetadata } from "./directory.types.js";
+import type { DirectoryMetadata, PopulatedAncestor } from "./directory.types.js";
 import Directory from "./directory.model.js";
 import type { UserProfile } from "../user/user.types.js";
-import type { QueryOptions } from "../../types/repository.types.js";
 
 export class DirectoryRepository {
     static async createDirectory(directoryData: DirectoryMetadata, session?: ClientSession) {
@@ -13,10 +12,10 @@ export class DirectoryRepository {
         return await directory.save();
     }
 
-    static async insertDirectory(directoryName: string, userId: string, parentDirectoryId: string) {
+    static async insertDirectory(directoryName: string, userId: string, parentDirectoryId: string, ancestors: string[]) {
         return await Directory.findOneAndUpdate(
             { name: directoryName, parentDirectoryId, userId },
-            { $setOnInsert: { name: directoryName, parentDirectoryId, userId } },
+            { $setOnInsert: { name: directoryName, parentDirectoryId, userId, ancestors } },
             { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
         );
     }
@@ -32,7 +31,7 @@ export class DirectoryRepository {
     }
 
     static async getDirectoriesWithOwner(parentDirectoryId: string, userId: string) {
-        return await Directory.find({ parentDirectoryId: parentDirectoryId, userId }).select("-parentDirectoryId").populate<{ userId: UserProfile }>("userId", "_id name email picture").lean();
+        return await Directory.find({ parentDirectoryId: parentDirectoryId, userId }).select("-parentDirectoryId").populate<{ userId: UserProfile}>([{ path: "userId", select: "_id name email picture" }]).lean();
     }
 
     static async updateDirectoryName(userId: string, directoryId: string, newName: string) {
@@ -49,5 +48,24 @@ export class DirectoryRepository {
             return await Directory.deleteMany({ userId }, { session });
         }
         return await Directory.deleteMany({ userId });
+    }
+
+    static async getAncestorsById(userId: string, directoryId: string) {
+        const directory = await Directory.findOne({ _id: directoryId, userId }).select("ancestors").lean();
+        if(!directory) return [];
+        return directory.ancestors.map((id) => id.toString());
+    }
+
+    static async getAncestorsWithNamesById(userId: string, directoryId: string) {
+        const directory = await Directory.findOne({ _id: directoryId, userId }).select("ancestors").populate<{ ancestors: PopulatedAncestor[] }>([{ path: "ancestors", select: "_id name" }]).lean();
+        if(!directory) return [];
+        return directory.ancestors.map((ancestor) => ({ _id: ancestor._id.toString(), name: ancestor.name }));
+    }
+
+    static async updateSizeByIds(ancestorIds: string[], deltaSize: number, session?: ClientSession) {
+        if(session) {
+            return await Directory.updateMany({ _id: { $in: ancestorIds } }, { $inc: { size: deltaSize } }, { session });
+        }
+        return await Directory.updateMany({ _id: { $in: ancestorIds } }, { $inc: { size: deltaSize } });
     }
 }

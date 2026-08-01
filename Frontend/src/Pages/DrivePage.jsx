@@ -7,6 +7,7 @@ import { deleteDirectory, deleteMultipleDirectories, getDirectoryContents, renam
 import MiniLoader from "../components/MiniLoader";
 import { deleteFile, deleteMultipleFiles } from "../api/fileService";
 import { RenameModal } from "../components/RenameModal";
+import { Breadcrumb } from "../components/BreadCrumb";
 
 export default function DrivePage() {
   const { directoryId } = useParams();
@@ -21,6 +22,8 @@ export default function DrivePage() {
   const [loading, setLoading] = useState(true);
 
   const [renameModalItem, setRenameModalItem] = useState(null);
+
+  const [currentPath, setCurrentPath] = useState([{ id: 'root', name: 'My Drive' }]);
 
   const handleMouseDown = (item) => (e) => {
     if (e.button === 2) return;
@@ -76,12 +79,20 @@ export default function DrivePage() {
     navigate(`/drive/${directoryId}`);
   };
 
+  const handleBreadcrumbNavigate = (targetDirectoryId) => {
+    if (!targetDirectoryId || targetDirectoryId === "root") {
+      navigate("/drive");
+      return;
+    }
+    navigate(`/drive/${targetDirectoryId}`);
+  };
+
   const handleBulkDownload = (selectedItems) => {
     const formattedItems = selectedItems.map((item) => ({
       id: item.id,
       type: item.type == "directory" ? "directory" : "file",
     }));
-    
+
     const form = document.createElement("form");
     form.method = "POST";
     form.action = import.meta.env.VITE_BULK_DOWNLOAD_URL;
@@ -98,16 +109,16 @@ export default function DrivePage() {
     document.body.removeChild(form);
   };
 
-  const handleSingleDelete = async(targetItem) => {
+  const handleSingleDelete = async (targetItem) => {
     try {
-      if(targetItem.type === "directory") {
+      if (targetItem.type === "directory") {
         const response = await deleteDirectory(targetItem.id);
-        if(response.success) {
+        if (response.success) {
           setDirectories((prev) => prev.filter((dir) => dir.id !== targetItem.id));
         }
       } else {
         const response = await deleteFile(targetItem.id);
-        if(response.success) {
+        if (response.success) {
           setFiles((prev) => prev.filter((file) => file.id !== targetItem.id));
         }
       }
@@ -168,7 +179,7 @@ export default function DrivePage() {
             break;
           }
         }
-        
+
         if (ids.length > 0) {
           const selectedItems = [...files, ...directories].filter(item => ids.includes(item.id));
           handleBulkDownload(selectedItems);
@@ -211,13 +222,19 @@ export default function DrivePage() {
     }
   };
 
-  const fetchDirectoryContents = useCallback(async() => {
+  const fetchDirectoryContents = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getDirectoryContents(directoryId);
-      if(response.success) {
+      if (response.success) {
         setFiles(response.data.files);
         setDirectories(response.data.directories);
+        setCurrentPath(
+          (response.data.path || []).map((item) => ({
+            id: item.id || item._id,
+            name: item.name,
+          }))
+        );
       }
     } catch (error) {
       console.error(error);
@@ -229,101 +246,82 @@ export default function DrivePage() {
   useEffect(() => {
     fetchDirectoryContents();
   }, [fetchDirectoryContents]);
-  
-  if(loading) return <MiniLoader size="lg" text="Loading your files..." className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />;
-  
+
+  if (loading) return <MiniLoader size="lg" text="Loading your files..." className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />;
+
   return (
     <>
       <main className="flex-1 overflow-y-auto" onMouseDown={clearSelection}>
         <div className="relative max-w-[1400px] mx-auto px-6 py-6">
-            <div className="sticky top-0 z-10 pb-4 mb-6 bg-background backdrop-blur-md -mx-6 px-6 pt-6 -mt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-1">
-                    <span>Swiftstash</span>
-                    <ChevronRight className="w-3 h-3" />
-                    <span className="text-text-main">My Drive</span>
-                  </div>
-                  <h1 className="text-2xl font-semibold tracking-tight">My Drive</h1>
+          <div className="sticky top-0 z-10 pb-4 mb-6 bg-background backdrop-blur-md -mx-6 px-6 pt-6 -mt-6">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1 pr-4">
+                <div className="flex items-center gap-1.5 text-xs text-text-secondary mb-1">
+                  <span>Swiftstash</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button className="h-9 px-3 rounded-lg border border-gray-800 text-sm text-text-secondary hover:text-text-main hover:bg-card-bg inline-flex items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4" /> Filters
+                <Breadcrumb path={currentPath} onNavigate={handleBreadcrumbNavigate} />
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="h-9 px-3 rounded-lg border border-[color:var(--color-divider-strong)] text-sm text-text-secondary hover:text-text-main hover:bg-[color:var(--color-surface-1)] inline-flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4" /> Filters
+                </button>
+                <div className="flex rounded-lg border border-[color:var(--color-divider-strong)] overflow-hidden">
+                  <button className="h-9 w-9 grid place-items-center bg-[color:var(--color-surface-1)] text-text-main">
+                    <ListIcon className="w-4 h-4" />
                   </button>
-                  <div className="flex rounded-lg border border-gray-800 overflow-hidden">
-                    <button className="h-9 w-9 grid place-items-center bg-card-bg text-text-main">
-                      <ListIcon className="w-4 h-4" />
-                    </button>
-                    <button className="h-9 w-9 grid place-items-center text-text-secondary hover:text-text-main hover:bg-card-bg">
-                      <LayoutGrid className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button className="h-9 w-9 grid place-items-center text-text-secondary hover:text-text-main hover:bg-[color:var(--color-surface-1)]">
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-
-              {(selected.size > 1 || (selected.size === 1 && isBulkMode)) && (
-                <div className="mt-4 flex items-center justify-between px-4 h-11 rounded-xl bg-primary/10 border border-primary/30">
-                  <div className="text-sm">
-                    <span className="font-semibold">{selected.size}</span>{" "}
-                    <span className="text-text-secondary">
-                      item{selected.size > 1 ? "s" : ""} selected
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleAction("download")}
-                      className="h-8 px-3 rounded-md text-sm bg-white/5 hover:bg-white/10 transition"
-                    >
-                      Download
-                    </button>
-                    <button
-                      onClick={() => handleAction("trash")}
-                      className="h-8 px-3 rounded-md text-sm bg-danger/15 text-danger hover:bg-danger/25 transition"
-                    >
-                      Move to Trash
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSelected(new Set());
-                        setIsBulkMode(false);
-                      }}
-                      className="h-8 px-3 rounded-md text-sm text-text-secondary hover:text-text-main"
-                    >
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_180px_120px_140px] gap-3 px-4 pb-2 text-[11px] uppercase tracking-widest text-text-secondary/70">
-              <div>Name</div>
-              <div>Owner</div>
-              <div>Size</div>
-              <div>Modified</div>
-            </div>
-
-            {directories?.length > 0 && (
-              <section className="mb-6">
-                <div className="space-y-1">
-                  {directories.map((item) => (
-                    <FileRow
-                      key={item.id}
-                      item={item}
-                      selected={selected.has(item.id)}
-                      active={activeId === item.id}
-                      onMouseDown={handleMouseDown(item)}
-                      onDoubleClick={() => handleAction("open", item.id)}
-                      onContextMenu={handleContextMenu(item)}
-                    />
-                  ))}
+            {(selected.size > 1 || (selected.size === 1 && isBulkMode)) && (
+              <div className="mt-4 flex items-center justify-between px-4 h-11 rounded-xl bg-primary/10 border border-primary/30">
+                <div className="text-sm">
+                  <span className="font-semibold">{selected.size}</span>{" "}
+                  <span className="text-text-secondary">
+                    item{selected.size > 1 ? "s" : ""} selected
+                  </span>
                 </div>
-              </section>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleAction("download")}
+                    className="h-8 px-3 rounded-md text-sm bg-white/5 hover:bg-white/10 transition"
+                  >
+                    Download
+                  </button>
+                  <button
+                    onClick={() => handleAction("trash")}
+                    className="h-8 px-3 rounded-md text-sm bg-danger/15 text-danger hover:bg-danger/25 transition"
+                  >
+                    Move to Trash
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelected(new Set());
+                      setIsBulkMode(false);
+                    }}
+                    className="h-8 px-3 rounded-md text-sm text-text-secondary hover:text-text-main"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
             )}
+          </div>
 
-            <section>
-              <div className="space-y-1 pb-24">
-                {files?.map((item) => (
+          <div className="grid grid-cols-[minmax(0,1fr)_180px_120px_140px] gap-3 px-4 pb-2 text-[11px] uppercase tracking-widest text-text-secondary/70">
+            <div>Name</div>
+            <div>Owner</div>
+            <div>Size</div>
+            <div>Modified</div>
+          </div>
+
+          {directories?.length > 0 && (
+            <section className="mb-6">
+              <div className="space-y-1">
+                {directories.map((item) => (
                   <FileRow
                     key={item.id}
                     item={item}
@@ -336,6 +334,23 @@ export default function DrivePage() {
                 ))}
               </div>
             </section>
+          )}
+
+          <section>
+            <div className="space-y-1 pb-24">
+              {files?.map((item) => (
+                <FileRow
+                  key={item.id}
+                  item={item}
+                  selected={selected.has(item.id)}
+                  active={activeId === item.id}
+                  onMouseDown={handleMouseDown(item)}
+                  onDoubleClick={() => handleAction("open", item.id)}
+                  onContextMenu={handleContextMenu(item)}
+                />
+              ))}
+            </div>
+          </section>
         </div>
       </main>
 

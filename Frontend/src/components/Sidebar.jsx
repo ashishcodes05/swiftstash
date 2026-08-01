@@ -30,8 +30,8 @@ const collections = [
 
 export function Sidebar({ onNewFolderClick }) {
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-gray-800 bg-blue-950/20 backdrop-blur-xl">
-      <div className="flex items-center gap-2 px-5 h-16 border-b border-gray-800">
+    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-(--color-divider-strong) bg-(--color-sidebar-bg) backdrop-blur-xl">
+      <div className="flex items-center gap-2 px-5 h-16 border-b border-(--color-divider-strong)">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg">
           <img src={assets.logo} alt="SwiftStash" className="h-8 w-8" />
         </div>
@@ -53,7 +53,7 @@ export function Sidebar({ onNewFolderClick }) {
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-5 border-b border-gray-800">
+      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-5 border-b border-(--color-divider-strong)">
         <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
           Workspace
         </div>
@@ -73,12 +73,12 @@ export function Sidebar({ onNewFolderClick }) {
         </ul>
       </nav>
 
-      <div className="m-3 rounded-xl border border-gray-800 bg-card-bg/80 p-4">
+      <div className="m-3 rounded-xl border border-(--color-divider-strong) bg-(--color-sidebar-elevated) p-4">
         <div className="flex items-center gap-2 text-sm font-medium">
           <HardDrive className="h-4 w-4 text-secondary-accent" />
           Storage
         </div>
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-(--color-hover-soft)">
           <div
             className="h-full rounded-full bg-gradient-to-r from-primary via-secondary-accent to-secondary"
             style={{ width: "64%" }}
@@ -105,8 +105,8 @@ function NavRow({ item }) {
         className={({ isActive }) =>
           `group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
             isActive
-              ? "bg-primary/20 text-text-main"
-              : "text-text-secondary hover:bg-white/[0.03] hover:text-text-main"
+              ? "bg-primary/15 text-text-main"
+              : "text-text-secondary hover:bg-(--color-hover-soft) hover:text-text-main"
           }`
         }
       >
@@ -121,7 +121,7 @@ function NavRow({ item }) {
             />
             <span className="flex-1 text-left truncate">{item.label}</span>
             {item.count !== undefined && (
-              <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
+              <span className="rounded-md bg-(--color-hover-soft) px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
                 {item.count}
               </span>
             )}

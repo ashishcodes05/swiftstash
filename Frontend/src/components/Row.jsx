@@ -36,7 +36,7 @@ export function Row({ item, selected, active, onMouseDown, onDoubleClick, onCont
     >
       <div className="flex items-center gap-3 min-w-0">
         {/* FIX: Removed iconTint from this wrapper div */}
-        <div className="w-9 h-9 grid place-items-center rounded-lg border border-gray-800 bg-white/[0.02]">
+        <div className="w-9 h-9 grid place-items-center rounded-lg border border-[color:var(--color-icon-chip-border)] bg-[color:var(--color-icon-chip-bg)]">
           {/* FIX: Applied iconTint directly to the Icon here */}
           <Icon className={`w-4.5 h-4.5 ${colorClass} ${bgClass}/10`} />
         </div>
@@ -47,7 +47,7 @@ export function Row({ item, selected, active, onMouseDown, onDoubleClick, onCont
             {/* {item.starred && <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />} */}
           </div>
           <div className="text-[11px] text-text-secondary">
-            {item.type === "directory" ? "Folder" : getReadableFileType(item.type)} · {formatFileSize(item.size) || "-"}
+            {item.type === "directory" ? "Folder" : getReadableFileType(item.type)} · {formatFileSize(item.size) || 0}
           </div>
         </div>
       </div>
@@ -60,7 +60,7 @@ export function Row({ item, selected, active, onMouseDown, onDoubleClick, onCont
           </>
         ) : (
           <>
-            <div className="w-7 h-7 rounded-full bg-white/10 grid place-items-center text-text-main text-[11px] font-semibold">
+            <div className="w-7 h-7 rounded-full border border-[color:var(--color-icon-chip-border)] bg-[color:var(--color-icon-chip-bg)] grid place-items-center text-text-main text-[11px] font-semibold">
               {(item.ownerName ?? "?").slice(0, 1).toUpperCase()}
             </div>
             <span className="text-sm text-text-secondary truncate">{item.ownerName}</span>
@@ -68,7 +68,7 @@ export function Row({ item, selected, active, onMouseDown, onDoubleClick, onCont
         )}
       </div>
 
-      <div className="text-sm text-text-secondary">{formatFileSize(item.size) || "-"}</div>
+      <div className="text-sm text-text-secondary">{formatFileSize(item.size) || 0}</div>
       <div className="text-sm text-text-secondary">{formatTimeAgo(item.updatedAt)}</div>
     </div>
   );

@@ -24,6 +24,38 @@
   /* Matched these row selections to your specific primary blue (#1467FF) */
   --color-row-selected: rgba(20, 103, 255, 0.1); 
   --color-row-selected-border: rgba(20, 103, 255, 0.3);
+  --color-surface-1: #111827;
+  --color-surface-2: #0f172a;
+  --color-sidebar-bg: rgba(10, 18, 38, 0.66);
+  --color-sidebar-elevated: rgba(17, 24, 39, 0.8);
+  --color-icon-chip-bg: rgba(255, 255, 255, 0.02);
+  --color-icon-chip-border: rgba(148, 163, 184, 0.2);
+  --color-hover-soft: rgba(255, 255, 255, 0.05);
+  --color-divider-strong: #1f2937;
+}
+
+:root[data-theme="light"] {
+  --color-background: #edf3ff;
+  --color-primary: #0f5de2;
+  --color-secondary: #6d58e8;
+  --color-primary-accent: #3347d4;
+  --color-secondary-accent: #0891b2;
+  --color-text-main: #0f172a;
+  --color-text-secondary: #475569;
+  --color-card-bg: #f8fbff;
+  --color-border-subtle: rgba(15, 23, 42, 0.1);
+  --color-row-hover: rgba(15, 23, 42, 0.04);
+  --color-row-selected: rgba(15, 93, 226, 0.1);
+  --color-row-selected-border: rgba(15, 93, 226, 0.25);
+  --shadow-menu: 0 12px 35px -18px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(15, 23, 42, 0.08);
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f3f7ff;
+  --color-sidebar-bg: rgba(222, 234, 255, 0.82);
+  --color-sidebar-elevated: rgba(255, 255, 255, 0.92);
+  --color-icon-chip-bg: #e9f1ff;
+  --color-icon-chip-border: #c8d9f7;
+  --color-hover-soft: rgba(15, 23, 42, 0.06);
+  --color-divider-strong: #d1d5db;
 }
 
 * {
@@ -47,4 +79,16 @@ body {
 
 body {
   color: var(--color-text-main);
+}
+
+body,
+#root,
+header,
+main,
+section,
+aside,
+button,
+input,
+div {
+  transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }

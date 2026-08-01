@@ -4,6 +4,7 @@ import { StorageService } from "./storage.service.js";
 import mimetype from "mime-types";
 import path from "path";
 import { DirectoryRepository } from "../directory/directory.repository.js";
+import { DirectoryService } from "../directory/directory.service.js";
 import type { ZipArchive } from "archiver";
 import { existsSync } from "fs";
 
@@ -65,7 +66,9 @@ export class FileService {
             const directories = relativePath?.split('/') || [];
             directories.pop();
             for (const directory of directories) {
-                const directoryDoc = await DirectoryRepository.insertDirectory(directory, userId, currentDirectoryId);
+                const ancestors = await DirectoryRepository.getAncestorsById(userId, currentDirectoryId);
+                ancestors.push(currentDirectoryId);
+                const directoryDoc = await DirectoryRepository.insertDirectory(directory, userId, currentDirectoryId, ancestors);
                 currentDirectoryId = directoryDoc._id.toString();
             }
         }
@@ -79,6 +82,7 @@ export class FileService {
             userId: userId,
             isShared: false
         });
+        await DirectoryService.updateParentDirectorySize(userId, currentDirectoryId, file.size);
     }
 
     static async addFileToArchive(archive: ZipArchive, fileId: string, userId: string, currentZipPath: string) {

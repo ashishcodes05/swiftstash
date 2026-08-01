@@ -11,6 +11,15 @@ const directorySchema = new Schema<DirectorySchema>({
         type: String,
         default: "directory"
     },
+    size: {
+        type: Number,
+        default: 0
+    },
+    ancestors: {
+        type: [Schema.Types.ObjectId],
+        default: [],
+        ref: "Directory"
+    },
     parentDirectoryId: {
         type: Schema.Types.ObjectId,
         default: null,

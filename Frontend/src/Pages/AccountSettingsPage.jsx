@@ -154,7 +154,7 @@ export default function AccountSettingsPage() {
       return;
     }
 
-    const response = await setPassword("", passwordForm.newPassword);
+    const response = await setPassword(passwordForm.newPassword);
     setPasswordForm(initialPasswordState);
     setHasPassword(true);
   };

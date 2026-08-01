@@ -4,6 +4,8 @@ import {
   Search,
   Bell,
   Settings,
+  Sun,
+  MoonStar,
   Upload,
   ChevronDown,
   FileUp,
@@ -70,7 +72,18 @@ export function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [themeMode, setThemeMode] = useState("dark");
   const [items, setItems] = useState([]);
+
+  const applyTheme = useCallback((nextTheme) => {
+    document.documentElement.setAttribute("data-theme", nextTheme);
+    localStorage.setItem("swiftstash-theme", nextTheme);
+    setThemeMode(nextTheme);
+  }, []);
+
+  const toggleThemeMode = () => {
+    applyTheme(themeMode === "dark" ? "light" : "dark");
+  };
 
   const processQueue = useCallback(
     async (queue) => {
@@ -170,6 +183,14 @@ export function Topbar() {
   };
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem("swiftstash-theme");
+    const prefersLight =
+      window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+    const initialTheme = savedTheme || (prefersLight ? "light" : "dark");
+    applyTheme(initialTheme);
+  }, [applyTheme]);
+
+  useEffect(() => {
     const handlePointerDown = (event) => {
       if (!profileMenuOpen) return;
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
@@ -194,12 +215,12 @@ export function Topbar() {
 
   return (
     <>
-      <header className="h-16 shrink-0 border-b border-border-subtle bg-background/70 backdrop-blur-md flex items-center px-6 gap-4 sticky top-0 z-20 border-gray-800">
+      <header className="h-16 shrink-0 border-b border-(--color-divider-strong) bg-background/70 backdrop-blur-md flex items-center px-6 gap-4 sticky top-0 z-20">
         <div className="flex-1 max-w-xl relative">
           <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             placeholder="Search files, folders, and people"
-            className="w-full h-10 pl-10 pr-4 rounded-xl bg-card-bg/70 border border-gray-800 text-sm text-text-main placeholder:text-text-secondary/70 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
+            className="w-full h-10 pl-10 pr-4 rounded-xl bg-(--color-surface-1) border border-(--color-divider-strong) text-sm text-text-main placeholder:text-text-secondary/70 outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition"
           />
         </div>
 
@@ -207,23 +228,23 @@ export function Topbar() {
           <div className="relative">
             <button
               onClick={() => setMenuOpen((v) => !v)}
-              className="hidden sm:inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-800 text-sm text-text-main hover:bg-card-bg transition-colors"
+              className="hidden sm:inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-(--color-divider-strong) text-sm text-text-main hover:bg-(--color-surface-1) transition-colors"
             >
               <Upload className="w-4 h-4" /> Upload <ChevronDown className="w-3 h-3 opacity-70" />
             </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 mt-2 w-52 rounded-xl bg-card-bg border border-gray-800 shadow-xl overflow-hidden z-40">
+                <div className="absolute right-0 mt-2 w-52 rounded-xl bg-(--color-surface-1) border border-(--color-divider-strong) shadow-xl overflow-hidden z-40">
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-full flex items-center gap-3 px-3 h-10 text-sm hover:bg-white/5"
+                    className="w-full flex items-center gap-3 px-3 h-10 text-sm hover:bg-(--color-hover-soft)"
                   >
                     <FileUp className="w-4 h-4 text-text-secondary" /> Upload files
                   </button>
                   <button
                     onClick={() => folderInputRef.current?.click()}
-                    className="w-full flex items-center gap-3 px-3 h-10 text-sm hover:bg-white/5"
+                    className="w-full flex items-center gap-3 px-3 h-10 text-sm hover:bg-(--color-hover-soft)"
                   >
                     <FolderUp className="w-4 h-4 text-text-secondary" /> Upload folder
                   </button>
@@ -238,6 +259,29 @@ export function Topbar() {
           >
             <Bell className="w-4 h-4" />
             <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-secondary-accent" />
+          </button>
+          <button
+            onClick={toggleThemeMode}
+            className="relative h-10 w-20 rounded-xl border border-border-subtle bg-card-bg/70 backdrop-blur-lg transition-colors hover:bg-card-bg"
+            aria-label={`Switch to ${themeMode === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${themeMode === "dark" ? "light" : "dark"} mode`}
+          >
+            <span
+              className="absolute top-1 left-1 h-8 w-8 rounded-lg bg-primary/15 shadow-[0_4px_18px_-6px_rgba(20,103,255,0.55)] transition-transform duration-300 ease-out"
+              style={{ transform: themeMode === "dark" ? "translateX(0)" : "translateX(38px)" }}
+            />
+            <span className="relative z-10 flex h-full items-center justify-between px-2.5">
+              <MoonStar
+                className={`h-4 w-4 transition-colors ${
+                  themeMode === "dark" ? "text-primary" : "text-text-secondary"
+                }`}
+              />
+              <Sun
+                className={`h-4 w-4 transition-colors ${
+                  themeMode === "light" ? "text-primary" : "text-text-secondary"
+                }`}
+              />
+            </span>
           </button>
           <button
             onClick={() => navigate("/drive/settings/account")}
@@ -257,8 +301,8 @@ export function Topbar() {
             {profileMenuOpen && (
               <>
                 <div className="fixed inset-0 z-30 bg-transparent" onClick={closeProfileMenu} />
-                <div className="absolute right-0 mt-3 w-70 overflow-hidden rounded-2xl border border-gray-800 bg-card-bg/95 shadow-2xl shadow-black/30 backdrop-blur-xl z-40">
-                  <div className="border-b border-gray-800 px-4 py-4">
+                <div className="absolute right-0 mt-3 w-70 overflow-hidden rounded-2xl border border-(--color-divider-strong) bg-(--color-surface-1)/95 shadow-2xl shadow-black/20 backdrop-blur-xl z-40">
+                  <div className="border-b border-(--color-divider-strong) px-4 py-4">
                     <div className="flex items-center gap-3">
                       <img referrerpolicy="no-referrer" src={user.picture} alt="Profile" className="h-10 w-10 rounded-full" />
                       <div className="min-w-0">
@@ -278,7 +322,7 @@ export function Topbar() {
                         closeProfileMenu();
                         navigate("/drive/settings/account#pro-upgrade");
                       }}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-1 text-left text-sm text-text-main hover:bg-white/[0.04] transition-colors"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-1 text-left text-sm text-text-main hover:bg-(--color-hover-soft) transition-colors"
                     >
                       <span className="grid h-6 w-6 place-items-center rounded-lg bg-primary/15 text-secondary-accent">
                         <Sparkles className="h-4 w-4" />
@@ -290,9 +334,9 @@ export function Topbar() {
 
                     <button
                       onClick={openSettings}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-1 text-left text-sm text-text-main hover:bg-white/[0.04] transition-colors"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-1 text-left text-sm text-text-main hover:bg-(--color-hover-soft) transition-colors"
                     >
-                      <span className="grid h-6 w-6 place-items-center rounded-lg bg-white/[0.03] text-text-main">
+                      <span className="grid h-6 w-6 place-items-center rounded-lg border border-(--color-icon-chip-border) bg-(--color-icon-chip-bg) text-text-main">
                         <Settings2 className="h-4 w-4" />
                       </span>
                       <span className="flex-1">
@@ -300,13 +344,13 @@ export function Topbar() {
                       </span>
                     </button>
 
-                    <div className="my-2 h-px bg-gray-800" />
+                    <div className="my-2 h-px bg-(--color-divider-strong)" />
 
                     <button
                       onClick={() => handleLogout("/auth/logout")}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-1 text-left text-sm text-text-main hover:bg-white/[0.04] transition-colors"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-1 text-left text-sm text-text-main hover:bg-(--color-hover-soft) transition-colors"
                     >
-                      <span className="grid h-6 w-6 place-items-center rounded-lg bg-white/[0.03] text-text-main">
+                      <span className="grid h-6 w-6 place-items-center rounded-lg border border-(--color-icon-chip-border) bg-(--color-icon-chip-bg) text-text-main">
                         <LogOut className="h-4 w-4" />
                       </span>
                       <span className="flex-1">

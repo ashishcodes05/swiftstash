@@ -7,19 +7,22 @@ import { z } from "zod";
 export interface DirectorySchema {
     name: string;
     type: string;
+    size: number;
     parentDirectoryId: Types.ObjectId | null;
+    ancestors: Types.ObjectId[];
     userId: Types.ObjectId
     isShared: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export type DirectoryMetadata = Simplify<{_id: Types.ObjectId} & SetOptional<DirectorySchema, 'parentDirectoryId' | 'isShared' | 'createdAt' | 'updatedAt'>>;
+export type DirectoryMetadata = Simplify<{_id: Types.ObjectId} & SetOptional<DirectorySchema, 'parentDirectoryId' | 'size' | 'ancestors'| 'isShared' | 'createdAt' | 'updatedAt'>>;
 
 export interface DirectoryData  {
     id: string;
     name: string;
     type: string;
+    size: number;
     ownerName: string;
     ownerEmail: string;
     ownerPicture: string;
@@ -31,6 +34,12 @@ export interface DirectoryData  {
 export interface GetDirectoryItemsByIdResponseData {
     files: FileData[];
     directories: DirectoryData[];
+    path: { _id: string, name: string }[];
+}
+
+export interface PopulatedAncestor {
+    _id: Types.ObjectId;
+    name: string;
 }
 
 export type GetDirectorySchema = z.infer<typeof getDirectoryItemsByIdSchema>;

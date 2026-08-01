@@ -5,9 +5,12 @@ import { SessionRepository } from "../auth/session.repository.js";
 import { UserRepository } from "./user.repository.js";
 
 export class UserController {
-    static async setPassword(req: Request, res: Response<ApiResponse | ApiErrorResponse>) {
+    static async setPassword(req: Request<{}, {}, { newPassword: string }>, res: Response<ApiResponse | ApiErrorResponse>) {
         const userId = req.userId!;
         const { newPassword } = req.body;
+        if (typeof newPassword !== "string" || !newPassword.trim()) {
+            return res.status(400).json({ success: false, error: "New password is required" });
+        }
         const user = await UserRepository.findById(userId);
         if(!user) return res.status(404).json({success: false, error: "User not found"});
         if(user.hasPassword){
@@ -21,7 +24,7 @@ export class UserController {
         res.clearCookie("sid");
         return res.status(200).json({success: true, message: "Password set successfully. Please log in again."});
     }
-    static async updatePassword(req: Request, res: Response<ApiResponse | ApiErrorResponse>) {
+    static async updatePassword(req: Request<{}, {}, { currentPassword: string; newPassword: string }>, res: Response<ApiResponse | ApiErrorResponse>) {
         const userId = req.userId!;
         const { currentPassword, newPassword } = req.body;
         const isUpdated = await UserService.updatePassword(userId, { currentPassword, newPassword });
@@ -33,7 +36,7 @@ export class UserController {
         return res.status(200).json({success: true, message: "Password updated successfully. Please log in again."});
     }
 
-    static async deleteAccount(req: Request, res: Response<ApiResponse | ApiErrorResponse>) {
+    static async deleteAccount(req: Request<{}, {}, { password: string }>, res: Response<ApiResponse | ApiErrorResponse>) {
         const userId = req.userId!;
         const { password } = req.body;
         const isPasswordCorrect = await UserRepository.validatePassword(userId, password);

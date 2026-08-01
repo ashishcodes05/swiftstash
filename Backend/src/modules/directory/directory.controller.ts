@@ -3,7 +3,7 @@ import type { ApiErrorResponse, ApiResponse } from "../../types/api.types.js";
 import { UserRepository } from "../user/user.repository.js";
 import { DirectoryService } from "./directory.service.js";
 import type { FileData } from "../file/file.types.js";
-import type { CreateDirectorySchema, DeleteDirectorySchema, DeleteMultipleDirectoriesSchema, DirectoryData, GetDirectoryItemsByIdResponseData, GetDirectorySchema, RenameDirectorySchema } from "./directory.types.js";
+import type { CreateDirectorySchema, DeleteDirectorySchema, DeleteMultipleDirectoriesSchema, DirectoryData, DirectoryMetadata, GetDirectoryItemsByIdResponseData, GetDirectorySchema, RenameDirectorySchema } from "./directory.types.js";
 
 export class DirectoryController {
     static async getDirectoryItemsById(req : Request<GetDirectorySchema["params"]>, res : Response<ApiResponse<GetDirectoryItemsByIdResponseData> | ApiErrorResponse>) {
@@ -14,7 +14,7 @@ export class DirectoryController {
             if(!rootDirectory) return res.status(404).json({success: false, error: "Root directory not found"});
             parentDirectoryId = rootDirectory;
         }
-        const {files, directories} = await DirectoryService.getDirectoryItems(userId, parentDirectoryId);
+        const {files, directories, path} = await DirectoryService.getDirectoryItems(userId, parentDirectoryId);
         const formattedFiles : FileData[] = files.map(file => {
             return {
                 id: file._id.toString(),
@@ -35,6 +35,7 @@ export class DirectoryController {
                 id: directory._id.toString(),
                 name: directory.name,
                 type: directory.type,
+                size: directory.size,
                 ownerName: directory.userId.name,
                 ownerEmail: directory.userId.email,
                 ownerPicture: directory.userId.picture,
@@ -43,7 +44,7 @@ export class DirectoryController {
                 updatedAt: directory.updatedAt
             }
         });
-        res.json({ success: true, message: "Directory items fetched successfully", data: { files: formattedFiles, directories: formattedDirectories } });
+        res.json({ success: true, message: "Directory items fetched successfully", data: { files: formattedFiles, directories: formattedDirectories, path } });
     }
 
     static async createDirectory(req : Request<CreateDirectorySchema["params"], {}, CreateDirectorySchema["body"]>, res : Response<ApiResponse | ApiErrorResponse>) {
