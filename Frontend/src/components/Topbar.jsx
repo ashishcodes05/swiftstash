@@ -18,37 +18,56 @@ import {
 import { UploadModal } from "./UploadModal";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosInstance";
-
-const UPLOAD_URL = "http://localhost:3000/api/v1/file/upload";
+import { completeFileUpload, initiateFileUpload } from "../api/fileService";
 
 function uploadOne({ item, parentDirectoryId, onProgress }) {
-  let xhrInstance = null;
+  let xhrInstance;
 
-  const uploadPromise = new Promise((resolve, reject) => {
+  const uploadPromise = (async () => {
+    let uploadUrl;
+    let fileId;
+    try {
+      const response = await initiateFileUpload(
+        {
+          name: item.file.name,
+          size: item.file.size,
+          relativePath: item.relativePath,
+          fileType: item.file.type || "application/octet-stream",
+        },
+        parentDirectoryId
+      );
+      uploadUrl = response?.data?.uploadUrl;
+      fileId = response?.data?.fileId;
+      if (!uploadUrl || !fileId) throw new Error("The server did not provide an upload link.");
+    } catch (error) {
+      throw new Error(getUploadError(error, "We could not prepare this file for upload."));
+    }
+
+    await new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhrInstance = xhr;
-
-    const fd = new FormData();
-    fd.append("file", item.file, item.file.name);
-    if (parentDirectoryId) fd.append("parentDirectoryId", parentDirectoryId);
-    fd.append("relativePath", item.relativePath);
 
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error(`HTTP ${xhr.status}`));
+      else reject(new Error("S3 upload failed"));
     };
-    xhr.onerror = () => reject(new Error("Network error"));
+    xhr.onerror = () => reject(new Error("The connection to storage failed."));
     xhr.onabort = () => reject(new Error("Aborted"));
 
-    xhr.withCredentials = true;
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", item.file.type || "application/octet-stream");
+    xhr.send(item.file);
+    });
 
-    xhr.open("POST", UPLOAD_URL);
-    console.log(fd.get("file"), fd.get("parentDirectoryId"), fd.get("relativePath"));
-    xhr.send(fd);
-  });
+    try {
+      await completeFileUpload(fileId);
+    } catch (error) {
+      throw new Error(getUploadError(error, "The file was uploaded but could not be verified."));
+    }
+  })();
 
   return {
     promise: uploadPromise,
@@ -56,6 +75,14 @@ function uploadOne({ item, parentDirectoryId, onProgress }) {
       if (xhrInstance) xhrInstance.abort();
     },
   };
+}
+
+function getUploadError(error, fallback) {
+  const message = error?.response?.data?.error || error?.response?.data?.message || error?.message;
+  if (!message || message === "S3 upload failed") return fallback;
+  if (message === "File size mismatch") return "The uploaded file was incomplete. Please try again.";
+  if (message === "File Not Found") return "The upload session expired. Please try again.";
+  return message;
 }
 
 export function Topbar() {

@@ -9,13 +9,15 @@ export interface UserSchema {
     picture: string;
     rootDirectory: Types.ObjectId;
     role: 'user' | 'admin';
+    currentStorageSize?: number;
+    maxStorageSize?: number;
     isDisabled: boolean;
     isDeleted: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
 
-export type UserData = Simplify<{_id: Types.ObjectId} & SetOptional<UserSchema, 'password' | 'hasPassword' | 'picture' | 'role' | 'isDisabled' | 'isDeleted' | 'createdAt' | 'updatedAt'>>;
+export type UserData = Simplify<{_id: Types.ObjectId} & SetOptional<UserSchema, 'password' | 'hasPassword' | 'picture' | 'role' | 'isDisabled' | 'isDeleted' | 'createdAt' | 'updatedAt' | 'currentStorageSize' | 'maxStorageSize'>>;
 export type UserMetadata = Simplify<Omit<UserData, 'password' | 'hasPassword' | 'rootDirectory'>>;
 export type UserProfile = Simplify<Required<Pick<UserData, '_id' | 'name' | 'email' | 'picture'>>>;
 

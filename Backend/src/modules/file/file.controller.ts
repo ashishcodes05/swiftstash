@@ -1,11 +1,12 @@
 import type { Request, Response } from "express";
 import { FileService } from "./file.service.js";
 import type { ApiErrorResponse, ApiResponse } from "../../types/api.types.js";
-import type { DeleteFileSchema, DeleteMultipleFilesSchema, DownloadItemSchema, DownloadMultipleFilesSchema, GetFileSchema, RenameFileSchema, UploadFileSchema } from "./file.types.js";
+import type { CompleteUploadSchema, DeleteFileSchema, DeleteMultipleFilesSchema, DownloadItemSchema, DownloadMultipleFilesSchema, GetFileSchema, InitiateUploadSchema, RenameFileSchema, UploadFileSchema} from "./file.types.js";
 import { UserRepository } from "../user/user.repository.js";
 import { ZipArchive } from "archiver"
 import fs from "fs/promises";
 import { DirectoryRepository } from "../directory/directory.repository.js";
+import { StorageService } from "./storage.service.js";
 
 export class FileController {
     static async getFileById(req : Request<GetFileSchema["params"]>, res: Response<ApiResponse | ApiErrorResponse>) {
@@ -17,15 +18,11 @@ export class FileController {
         }
         const { action } = req.query;
         if (action && action == 'download') {
-            return res.download(fileData.path, fileData.name);
+            const url = await StorageService.getFileUrl(fileId, fileData.name, fileData.extension, action);
+            return res.redirect(url);
         }
-        console.log(fileData.path)
-        return res.sendFile(fileData.path, (err) => {
-            if (res.headersSent) return;
-            if (err) {
-                res.status(500).json({ success: false, error: 'File Streaming Failed' });
-            }
-        });
+        const url = await StorageService.getFileUrl(fileId, fileData.name, fileData.extension);
+        return res.redirect(url);
     }
 
     static async uploadFile(req: Request<{}, {}, UploadFileSchema["body"]>, res: Response<ApiResponse | ApiErrorResponse>) {
@@ -43,7 +40,7 @@ export class FileController {
             }
             parentDirectoryId = rootDirectory;
         }
-        const fileType = await FileService.getFileType(uploadedFile._id, uploadedFile.extension);
+        const fileType = await FileService.getFileType(uploadedFile._id, uploadedFile.extension, parentDirectoryId, userId);
         if(!fileType || fileType.ext !== uploadedFile.extension.replace('.', '')) {
             await fs.unlink(uploadedFile.path);
             return res.status(400).json({ success: false, error: 'Unsupported file type' });
@@ -51,6 +48,38 @@ export class FileController {
         console.log(fileType)
         await FileService.uploadFile(parentDirectoryId, relativePath, uploadedFile, fileType.mime, userId);
         return res.status(200).json({ success: true, message: 'File uploaded successfully' });
+    }
+
+    static async initiateUpload(req: Request<{}, {}, InitiateUploadSchema["body"]>, res: Response<ApiResponse<{ uploadUrl: string, fileId: string }> | ApiErrorResponse>) {
+        const userId = req.userId!;
+        let parentDirectoryId = req.body.parentDirectoryId;
+        if(!parentDirectoryId){
+            const rootDirectory = await UserRepository.getRootDirectoryById(userId);
+            if(!rootDirectory) {
+                return res.status(400).json({ success: false, error: "User's Root directory not found" });
+            }
+            parentDirectoryId = rootDirectory;
+        }
+        const { fileData } = req.body;
+        const fileMetadata = await FileService.initiateUpload(parentDirectoryId, fileData.name, fileData.size, fileData.relativePath, fileData.fileType, userId);
+        const uploadUrl = await StorageService.getUploadUrl(fileMetadata._id!, fileMetadata.extension, fileData.fileType);
+        return res.status(200).json({ success: true, message: "fileMetadata retrieved successfully", data: { uploadUrl, fileId: fileMetadata._id } });
+    }
+
+    static async completeUpload(req: Request<{}, {}, CompleteUploadSchema["body"]>, res: Response<ApiResponse | ApiErrorResponse>) {
+        const userId = req.userId!;
+        const { fileId } = req.body;
+        try {
+            const uploadResult = await FileService.completeUpload(userId, fileId);
+            if(uploadResult.code !== 200) {
+                const { code, message } = uploadResult;
+                return res.status(code).json({ success: false, error: message });
+            }
+        } catch (error) {
+            console.error("Error verifying uploaded file:", error);
+            return res.status(502).json({ success: false, error: "We could not verify the uploaded file. Please try again." });
+        }
+        return res.status(200).json({ success: true, message: 'File upload completed successfully' });
     }
 
     static async downloadMultipleFiles(req: Request<{}, {}, DownloadMultipleFilesSchema["body"]>, res: Response<ApiResponse | ApiErrorResponse>) {

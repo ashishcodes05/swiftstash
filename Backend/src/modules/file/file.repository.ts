@@ -4,7 +4,7 @@ import type { FileMetadata } from "./file.types.js";
 
 export class FileRepository {
     static async getFileById(userId: string, fileId: string) {
-        return await File.findOne({_id: fileId, userId}).select("name type extension size updatedAt createdAt").lean()
+        return await File.findOne({_id: fileId, userId}).select("name type extension size parentDirectoryId updatedAt createdAt").lean()
     }
 
     static async getExtensionById(userId: string, fileId: string) {
@@ -48,6 +48,11 @@ export class FileRepository {
 
     static async getFilesByUserId(userId: string) {
         return await File.find({ userId }).select("extension _id").lean();
+    }
+
+    static async updateUploadStatus(userId: string, fileId: string, isUploading: boolean) {
+        const result = await File.updateOne({ _id: fileId, userId }, { $set: { isUploading } });
+        return result.modifiedCount > 0;
     }
     
 }

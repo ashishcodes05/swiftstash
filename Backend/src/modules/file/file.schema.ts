@@ -13,6 +13,24 @@ export const uploadFileSchema = z.object({
     })
 });
 
+export const initiateUploadSchema = z.object({
+    body: z.object({
+        fileData: z.object({
+            name: z.string().min(1, "File name is required"),
+            size: z.number().min(1, "File size is required"),
+            relativePath: z.string().min(1, "Relative Path is required"),
+            fileType: z.string().min(1, "File type is required"),
+        }),
+        parentDirectoryId: z.string().min(1, "Parent Directory ID is required").optional(),
+    })
+});
+
+export const completeUploadSchema = z.object({
+    body: z.object({
+        fileId: z.string().min(1, "File ID is required"),
+    })
+});
+
 export const downloadMultipleFilesSchema = z.object({
     body: z.object({
         items: z.string().min(1, "Items are required"),

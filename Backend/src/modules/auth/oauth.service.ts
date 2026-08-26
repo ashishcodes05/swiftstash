@@ -53,8 +53,11 @@ export class OAuthService {
                 _id: userId,
                 name,
                 email,
+                picture,
                 hasPassword: false,
                 rootDirectory: directoryData._id,
+                currentStorageSize: 0,
+                maxStorageSize: 1073741824,
             };
             await UserRepository.createUser(userData, mongooseSession);
             await DirectoryRepository.createDirectory(directoryData, mongooseSession);

@@ -45,6 +45,14 @@ const userSchema = new Schema<UserSchema, Model<UserSchema, {}, UserMethods>, Us
         enum: ['user', 'admin'],
         default: 'user',
     },
+    currentStorageSize: {
+        type: Number,
+        default: 0,
+    },
+    maxStorageSize: {
+        type: Number,
+        default: 1073741824, // 1 GB in bytes
+    },
     isDisabled: {
         type: Boolean,
         default: false,

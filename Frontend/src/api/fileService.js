@@ -1,5 +1,18 @@
 import axiosClient from "./axiosInstance"
 
+export const initiateFileUpload = async (fileData, parentDirectoryId) => {
+    const response = await axiosClient.post("/file/upload/initiate", {
+        fileData,
+        ...(parentDirectoryId ? { parentDirectoryId } : {}),
+    });
+    return response.data;
+};
+
+export const completeFileUpload = async (fileId) => {
+    const response = await axiosClient.post("/file/upload/complete", { fileId });
+    return response.data;
+};
+
 export const getFileData = async (fileId) => {
     try {
         const response = await axiosClient.get(`/file/${fileId}`)

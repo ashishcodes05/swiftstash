@@ -34,6 +34,10 @@ const fileSchema = new Schema<FileSchema>({
     isShared: {
         type: Boolean,
         default: false
+    },
+    isUploading: {
+        type: Boolean,
+        required: true
     }
 }, {
     timestamps: true
