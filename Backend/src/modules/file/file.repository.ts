@@ -19,11 +19,11 @@ export class FileRepository {
     }
 
     static async findByIdAndDelete(userId: string, fileId: string) {
-        return await File.findOneAndDelete({_id: fileId, userId}).select("extension").lean();
+        return await File.findOneAndDelete({_id: fileId, userId}).select("_id extension size parentDirectoryId").lean();
     }
 
     static async findFilesByIdsAndDelete(userId: string, fileIds: string[]) {
-        const filesData = await File.find({ _id: { $in: fileIds }, userId }).select("extension").lean();
+        const filesData = await File.find({ _id: { $in: fileIds }, userId }).select("_id extension size parentDirectoryId").lean();
         if(!filesData || filesData.length === 0) return null;
         await File.deleteMany({ _id: { $in: fileIds }, userId });
         return filesData;
@@ -35,7 +35,7 @@ export class FileRepository {
     }
 
     static async getFilesByDirectoryId(userId: string, directoryId: string) {
-        return await File.find({ parentDirectoryId: directoryId, userId }).select("_id extension").lean();
+        return await File.find({ parentDirectoryId: directoryId, userId }).select("_id extension size parentDirectoryId").lean();
     }
 
     static async getFilesWithOwner(directoryId: string, userId: string) {

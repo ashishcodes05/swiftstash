@@ -6,7 +6,6 @@ import path from "path";
 import { DirectoryRepository } from "../directory/directory.repository.js";
 import { DirectoryService } from "../directory/directory.service.js";
 import type { ZipArchive } from "archiver";
-import { existsSync } from "fs";
 import { Types } from "mongoose";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "../../config/env.js";
@@ -53,6 +52,8 @@ export class FileService {
         const fileData = await FileRepository.findByIdAndDelete(userId, fileId);
         if(!fileData) return null;
         await StorageService.deletePhysicalFile(fileId, fileData.extension);
+        await DirectoryService.updateParentDirectorySize(userId, fileData.parentDirectoryId.toString(), -fileData.size);
+        await StorageService.invalidateCloudFrontCache([`${fileData._id}${fileData.extension}`]);
         return fileData;
     }
 
@@ -61,6 +62,10 @@ export class FileService {
         if(!filesData || filesData.length === 0) return null;
         const keys = filesData.map(file => ({ Key: `${file._id}${file.extension}` }));
         await StorageService.deleteMultiplePhysicalFiles(keys);
+        await Promise.all(filesData.map(file =>
+            DirectoryService.updateParentDirectorySize(userId, file.parentDirectoryId.toString(), -file.size)
+        ));
+        await StorageService.invalidateCloudFrontCache(keys.map(file => file.Key));
         return true;
     }
 

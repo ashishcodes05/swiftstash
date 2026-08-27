@@ -16,6 +16,10 @@ const envSchema = z.object({
   AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
   AWS_BUCKET_NAME: z.string().min(1, 'AWS_BUCKET_NAME is required'),
   AWS_ENDPOINT: z.url('AWS_ENDPOINT must be a valid URL'),
+  CLOUDFRONT_DOMAIN: z.string().min(1, 'CLOUDFRONT_DOMAIN is required'),
+  CLOUDFRONT_PRIVATE_KEY: z.string().min(1, 'CLOUDFRONT_PRIVATE_KEY is required'),
+  CLOUDFRONT_KEY_PAIR_ID: z.string().min(1, 'CLOUDFRONT_KEY_PAIR_ID is required'),
+  CLOUDFRONT_DISTRIBUTION_ID: z.string().min(1, 'CLOUDFRONT_DISTRIBUTION_ID is required'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
