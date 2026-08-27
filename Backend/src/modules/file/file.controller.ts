@@ -82,6 +82,16 @@ export class FileController {
         return res.status(200).json({ success: true, message: 'File upload completed successfully' });
     }
 
+    static async cancelUpload(req: Request<{}, {}, CompleteUploadSchema["body"]>, res: Response<ApiResponse | ApiErrorResponse>) {
+        const userId = req.userId!;
+        const { fileId } = req.body;
+        const canceledFile = await FileService.cancelUpload(userId, fileId);
+        if (!canceledFile) {
+            return res.status(404).json({ success: false, error: 'Upload Not Found' });
+        }
+        return res.status(200).json({ success: true, message: 'Upload canceled successfully' });
+    }
+
     static async downloadMultipleFiles(req: Request<{}, {}, DownloadMultipleFilesSchema["body"]>, res: Response<ApiResponse | ApiErrorResponse>) {
         const userId = req.userId!;
         const items : DownloadItemSchema[] = JSON.parse(req.body.items || '[]');

@@ -19,11 +19,11 @@ export class FileRepository {
     }
 
     static async findByIdAndDelete(userId: string, fileId: string) {
-        return await File.findOneAndDelete({_id: fileId, userId}).select("_id extension size parentDirectoryId").lean();
+        return await File.findOneAndDelete({_id: fileId, userId}).select("_id extension size parentDirectoryId isUploading").lean();
     }
 
     static async findFilesByIdsAndDelete(userId: string, fileIds: string[]) {
-        const filesData = await File.find({ _id: { $in: fileIds }, userId }).select("_id extension size parentDirectoryId").lean();
+        const filesData = await File.find({ _id: { $in: fileIds }, userId }).select("_id extension size parentDirectoryId isUploading").lean();
         if(!filesData || filesData.length === 0) return null;
         await File.deleteMany({ _id: { $in: fileIds }, userId });
         return filesData;
@@ -35,7 +35,7 @@ export class FileRepository {
     }
 
     static async getFilesByDirectoryId(userId: string, directoryId: string) {
-        return await File.find({ parentDirectoryId: directoryId, userId }).select("_id extension size parentDirectoryId").lean();
+        return await File.find({ parentDirectoryId: directoryId, userId }).select("_id extension size parentDirectoryId isUploading").lean();
     }
 
     static async getFilesWithOwner(directoryId: string, userId: string) {
@@ -53,6 +53,12 @@ export class FileRepository {
     static async updateUploadStatus(userId: string, fileId: string, isUploading: boolean) {
         const result = await File.updateOne({ _id: fileId, userId }, { $set: { isUploading } });
         return result.modifiedCount > 0;
+    }
+
+    static async deleteUploadingFile(userId: string, fileId: string) {
+        return await File.findOneAndDelete({ _id: fileId, userId, isUploading: true })
+            .select("_id extension parentDirectoryId")
+            .lean();
     }
     
 }

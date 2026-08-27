@@ -18,10 +18,11 @@ import {
 import { UploadModal } from "./UploadModal";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosInstance";
-import { completeFileUpload, initiateFileUpload } from "../api/fileService";
+import { cancelFileUpload, completeFileUpload, initiateFileUpload } from "../api/fileService";
 
 function uploadOne({ item, parentDirectoryId, onProgress }) {
   let xhrInstance;
+  let canceled = false;
 
   const uploadPromise = (async () => {
     let uploadUrl;
@@ -39,6 +40,10 @@ function uploadOne({ item, parentDirectoryId, onProgress }) {
       uploadUrl = response?.data?.uploadUrl;
       fileId = response?.data?.fileId;
       if (!uploadUrl || !fileId) throw new Error("The server did not provide an upload link.");
+      if (canceled) {
+        await cancelFileUpload(fileId);
+        throw new Error("Aborted");
+      }
     } catch (error) {
       throw new Error(getUploadError(error, "We could not prepare this file for upload."));
     }
@@ -72,8 +77,10 @@ function uploadOne({ item, parentDirectoryId, onProgress }) {
   return {
     promise: uploadPromise,
     cancel: () => {
+      canceled = true;
       if (xhrInstance) xhrInstance.abort();
     },
+    cancelServerUpload: () => fileId ? cancelFileUpload(fileId) : Promise.resolve(),
   };
 }
 
@@ -125,7 +132,7 @@ export function Topbar() {
           );
 
           try {
-            const { promise, cancel } = uploadOne({
+            const { promise, cancel, cancelServerUpload } = uploadOne({
               item: it,
               parentDirectoryId: directoryId,
               onProgress: (percent) => {
@@ -139,11 +146,21 @@ export function Topbar() {
 
             await promise;
 
+            setUser((currentUser) => currentUser && {
+              ...currentUser,
+              currentStorageSize: (currentUser.currentStorageSize || 0) + it.file.size,
+            });
+
             setItems((prev) =>
               prev.map((p) => (p.id === it.id ? { ...p, status: "done", progress: 100 } : p))
             );
           } catch (err) {
             if (err.message === "Aborted") {
+              try {
+                await cancelServerUpload();
+              } catch (cleanupError) {
+                console.error("Could not clean up canceled upload:", cleanupError);
+              }
               setItems((prev) =>
                 prev.map((p) => (p.id === it.id ? { ...p, status: "canceled" } : p))
               );

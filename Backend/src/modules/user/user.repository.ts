@@ -47,7 +47,11 @@ export class UserRepository {
     }
 
     static async getUserMetadata(userId: string) {
-        return (await User.findById(userId).select("name email picture hasPassword role isDisabled isDeleted").lean()) as UserMetadata | null;
+        return (await User.findById(userId).select("name email picture hasPassword role isDisabled isDeleted currentStorageSize maxStorageSize").lean()) as UserMetadata | null;
+    }
+
+    static async updateStorageSize(userId: string, deltaSize: number) {
+        return await User.updateOne({ _id: userId }, { $inc: { currentStorageSize: deltaSize } });
     }
 
     static async updateProfilePicture(userId: string, pictureUrl: string) {

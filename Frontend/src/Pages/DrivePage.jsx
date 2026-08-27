@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ChevronRight, LayoutGrid, List as ListIcon, SlidersHorizontal } from "lucide-react";
+import { RefreshCw, SlidersHorizontal } from "lucide-react";
 import { FileRow } from "../components/Row";
 import { ContextMenu } from "../components/ContextMenu";
 import { deleteDirectory, deleteMultipleDirectories, getDirectoryContents, renameDirectory } from "../api/directoryService";
@@ -8,8 +8,12 @@ import MiniLoader from "../components/MiniLoader";
 import { deleteFile, deleteMultipleFiles } from "../api/fileService";
 import { RenameModal } from "../components/RenameModal";
 import { Breadcrumb } from "../components/BreadCrumb";
+import { DeleteModal } from "../components/DeleteModal";
+import { useAuth } from "../context/AuthContext";
+import axiosClient from "../api/axiosInstance";
 
 export default function DrivePage() {
+  const { setUser } = useAuth();
   const { directoryId } = useParams();
   const navigate = useNavigate();
   const [selected, setSelected] = useState(new Set());
@@ -22,6 +26,13 @@ export default function DrivePage() {
   const [loading, setLoading] = useState(true);
 
   const [renameModalItem, setRenameModalItem] = useState(null);
+  const [deleteItems, setDeleteItems] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const refreshUserStorage = async () => {
+    const response = await axiosClient.get("/auth/me");
+    if (response.data.success) setUser(response.data.data);
+  };
 
   const [currentPath, setCurrentPath] = useState([{ id: 'root', name: 'My Drive' }]);
 
@@ -115,15 +126,18 @@ export default function DrivePage() {
         const response = await deleteDirectory(targetItem.id);
         if (response.success) {
           setDirectories((prev) => prev.filter((dir) => dir.id !== targetItem.id));
+          await refreshUserStorage();
         }
       } else {
         const response = await deleteFile(targetItem.id);
         if (response.success) {
           setFiles((prev) => prev.filter((file) => file.id !== targetItem.id));
+          await refreshUserStorage();
         }
       }
     } catch (error) {
       console.error("Error deleting item:", error);
+      throw error;
     }
   };
 
@@ -142,12 +156,15 @@ export default function DrivePage() {
 
       setDirectories((prev) => prev.filter((dir) => !directoryIds.includes(dir.id)));
       setFiles((prev) => prev.filter((file) => !fileIds.includes(file.id)));
+      await refreshUserStorage();
     } catch (error) {
       console.error("Error deleting items:", error);
+      throw error;
     }
   };
 
   const handleAction = (action, overrideId) => {
+    if (deleteItems) return;
     const targetId = overrideId || menu?.targetId;
     const ids = selected.size > 0 ? Array.from(selected) : targetId ? [targetId] : [];
     setMenu(null);
@@ -204,11 +221,11 @@ export default function DrivePage() {
         if (ids.length === 1) {
           const singleItem = [...files, ...directories].find(i => i.id === ids[0]);
           if (singleItem) {
-            handleSingleDelete(singleItem);
+            setDeleteItems([singleItem]);
           }
         } else if (ids.length > 1) {
           const selectedItems = [...files, ...directories].filter(item => ids.includes(item.id));
-          handleBulkDelete(selectedItems);
+          setDeleteItems(selectedItems);
         }
         break;
     }
@@ -243,6 +260,23 @@ export default function DrivePage() {
     }
   }, [directoryId]);
 
+  const handleRefresh = async () => {
+    if (loading || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await fetchDirectoryContents();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    setSelected(new Set());
+    setActiveId(null);
+    setIsBulkMode(false);
+    setMenu(null);
+  }, [directoryId]);
+
   useEffect(() => {
     fetchDirectoryContents();
   }, [fetchDirectoryContents]);
@@ -265,14 +299,15 @@ export default function DrivePage() {
                 <button className="h-9 px-3 rounded-lg border border-[color:var(--color-divider-strong)] text-sm text-text-secondary hover:text-text-main hover:bg-[color:var(--color-surface-1)] inline-flex items-center gap-2">
                   <SlidersHorizontal className="w-4 h-4" /> Filters
                 </button>
-                <div className="flex rounded-lg border border-[color:var(--color-divider-strong)] overflow-hidden">
-                  <button className="h-9 w-9 grid place-items-center bg-[color:var(--color-surface-1)] text-text-main">
-                    <ListIcon className="w-4 h-4" />
-                  </button>
-                  <button className="h-9 w-9 grid place-items-center text-text-secondary hover:text-text-main hover:bg-[color:var(--color-surface-1)]">
-                    <LayoutGrid className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={handleRefresh}
+                  disabled={loading || isRefreshing}
+                  className="grid h-9 w-9 place-items-center rounded-lg border border-(--color-divider-strong) text-text-secondary transition-colors hover:bg-(--color-surface-1) hover:text-text-main disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Refresh files"
+                  title="Refresh files"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                </button>
               </div>
             </div>
 
@@ -369,6 +404,17 @@ export default function DrivePage() {
           onSuccess={() => {
             fetchDirectoryContents(); // Instantly refresh the UI!
           }}
+        />
+      )}
+      {deleteItems && (
+        <DeleteModal
+          items={deleteItems}
+          onClose={() => setDeleteItems(null)}
+          onConfirm={() =>
+            deleteItems.length === 1
+              ? handleSingleDelete(deleteItems[0])
+              : handleBulkDelete(deleteItems)
+          }
         />
       )}
     </>

@@ -1,6 +1,7 @@
 import { FileRepository } from "../file/file.repository.js";
 import { StorageService } from "../file/storage.service.js";
 import { DirectoryRepository } from "./directory.repository.js";
+import { UserRepository } from "../user/user.repository.js";
 
 export class DirectoryService {
     static async getDirectoryItems(userId: string, directoryId: string) {
@@ -42,7 +43,7 @@ export class DirectoryService {
     }
 
     static async #recursiveDeleteDirectory(userId: string, directoryId: string) {
-        const allFiles : { _id: string; extension: string; size: number; parentDirectoryId: string }[] = [], allDirectories : { _id: string, name: string }[] = [];
+        const allFiles : { _id: string; extension: string; size: number; parentDirectoryId: string; isUploading: boolean }[] = [], allDirectories : { _id: string, name: string }[] = [];
         const directories = (await DirectoryRepository.getNestedDirectories(userId, directoryId));
         allDirectories.push(...(directories.map(dir => ({ _id: dir._id.toString(), name: dir.name }))));
         await Promise.all(
@@ -57,7 +58,8 @@ export class DirectoryService {
             _id: file._id.toString(),
             extension: file.extension,
             size: file.size,
-            parentDirectoryId: file.parentDirectoryId.toString()
+            parentDirectoryId: file.parentDirectoryId.toString(),
+            isUploading: file.isUploading
         }))));
         return { files: allFiles, directories: allDirectories };
     }
@@ -76,13 +78,19 @@ export class DirectoryService {
                     await DirectoryService.updateParentDirectorySize(userId, file.parentDirectoryId, -file.size);
                 })
             )
+            const allocatedSize = uniqueFiles
+                .filter(file => !file.isUploading)
+                .reduce((total, file) => total + file.size, 0);
+            if (allocatedSize > 0) {
+                await UserRepository.updateStorageSize(userId, -allocatedSize);
+            }
             await StorageService.invalidateCloudFrontCache(uniqueFiles.map(file => `${file._id}${file.extension}`));
         }
         await DirectoryRepository.deleteManyDirectories(userId, directoryIds);
     }
 
     static async deleteMultipleDirectories(userId: string, directoryIds: string[]) {
-        const allFiles : { _id: string; extension: string; size: number; parentDirectoryId: string }[] = [], allDirectories : { _id: string, name: string }[] = [];
+        const allFiles : { _id: string; extension: string; size: number; parentDirectoryId: string; isUploading: boolean }[] = [], allDirectories : { _id: string, name: string }[] = [];
         await Promise.all(
             directoryIds.map(async(directoryId) => {
                 const { files, directories } = await this.#recursiveDeleteDirectory(userId, directoryId);
@@ -102,6 +110,12 @@ export class DirectoryService {
                     await DirectoryService.updateParentDirectorySize(userId, file.parentDirectoryId, -file.size);
                 })
             )
+            const allocatedSize = uniqueFiles
+                .filter(file => !file.isUploading)
+                .reduce((total, file) => total + file.size, 0);
+            if (allocatedSize > 0) {
+                await UserRepository.updateStorageSize(userId, -allocatedSize);
+            }
             await StorageService.invalidateCloudFrontCache(uniqueFiles.map(file => `${file._id}${file.extension}`));
         }
         await DirectoryRepository.deleteManyDirectories(userId, allDirectoryIds);

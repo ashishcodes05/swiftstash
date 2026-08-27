@@ -5,6 +5,7 @@ import mimetype from "mime-types";
 import path from "path";
 import { DirectoryRepository } from "../directory/directory.repository.js";
 import { DirectoryService } from "../directory/directory.service.js";
+import { UserRepository } from "../user/user.repository.js";
 import type { ZipArchive } from "archiver";
 import { Types } from "mongoose";
 import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
@@ -53,6 +54,9 @@ export class FileService {
         if(!fileData) return null;
         await StorageService.deletePhysicalFile(fileId, fileData.extension);
         await DirectoryService.updateParentDirectorySize(userId, fileData.parentDirectoryId.toString(), -fileData.size);
+        if (!fileData.isUploading) {
+            await UserRepository.updateStorageSize(userId, -fileData.size);
+        }
         await StorageService.invalidateCloudFrontCache([`${fileData._id}${fileData.extension}`]);
         return fileData;
     }
@@ -65,6 +69,12 @@ export class FileService {
         await Promise.all(filesData.map(file =>
             DirectoryService.updateParentDirectorySize(userId, file.parentDirectoryId.toString(), -file.size)
         ));
+        const allocatedSize = filesData
+            .filter(file => !file.isUploading)
+            .reduce((total, file) => total + file.size, 0);
+        if (allocatedSize > 0) {
+            await UserRepository.updateStorageSize(userId, -allocatedSize);
+        }
         await StorageService.invalidateCloudFrontCache(keys.map(file => file.Key));
         return true;
     }
@@ -147,7 +157,15 @@ export class FileService {
             return { code: 500, message: 'Failed to update upload status' };
         }
         await DirectoryService.updateParentDirectorySize(userId, fileData.parentDirectoryId.toString(), fileData.size);
+        await UserRepository.updateStorageSize(userId, fileData.size);
         return { code: 200, message: 'File upload completed successfully' };
+    }
+
+    static async cancelUpload(userId: string, fileId: string) {
+        const fileData = await FileRepository.deleteUploadingFile(userId, fileId);
+        if (!fileData) return null;
+        await StorageService.deletePhysicalFile(fileId, fileData.extension);
+        return fileData;
     }
 
     static async addFileToArchive(archive: ZipArchive, fileId: string, userId: string, currentZipPath: string) {

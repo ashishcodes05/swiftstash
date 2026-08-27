@@ -13,6 +13,11 @@ export const completeFileUpload = async (fileId) => {
     return response.data;
 };
 
+export const cancelFileUpload = async (fileId) => {
+    const response = await axiosClient.post("/file/upload/cancel", { fileId });
+    return response.data;
+};
+
 export const getFileData = async (fileId) => {
     try {
         const response = await axiosClient.get(`/file/${fileId}`)

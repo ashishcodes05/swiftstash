@@ -1,9 +1,17 @@
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router";
-import DrivePage from "./Pages/DrivePage"; // Adjust path if it's in a /pages folder
-import ManagePeoplePage from "./Pages/ManagePeoplePage";
-import AccountSettingsPage from "./Pages/AccountSettingsPage";
 import MiniLoader from "./components/MiniLoader";
 import AppLayout from "./components/AppLayout";
+
+const DrivePage = lazy(() => import("./Pages/DrivePage"));
+const ManagePeoplePage = lazy(() => import("./Pages/ManagePeoplePage"));
+const AccountSettingsPage = lazy(() => import("./Pages/AccountSettingsPage"));
+
+const lazyPage = (Page) => (
+  <Suspense fallback={<MiniLoader size="lg" text="Loading your files..." className="text-text-main" />}>
+    <Page />
+  </Suspense>
+);
 
 const comingSoonPage = (label) => (
   <main className="flex-1 overflow-y-auto">
@@ -25,19 +33,19 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <DrivePage />,
+        element: lazyPage(DrivePage),
       },
       {
         path: ":directoryId",
-        element: <DrivePage />,
+        element: lazyPage(DrivePage),
       },
       {
         path: "manage-people/:fileId",
-        element: <ManagePeoplePage />,
+        element: lazyPage(ManagePeoplePage),
       },
       {
         path: "settings/account",
-        element: <AccountSettingsPage />,
+        element: lazyPage(AccountSettingsPage),
       },
       // Placeholders for the other sidebar links so they don't crash when clicked
       {

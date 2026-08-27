@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { NavLink, useParams } from "react-router";
 import { assets } from "../assets/asset";
+import { useAuth } from "../context/AuthContext";
 
 const main = [
   { label: "My Drive", icon: FolderOpen, to: "/drive" },
@@ -29,6 +30,12 @@ const collections = [
 ];
 
 export function Sidebar({ onNewFolderClick }) {
+  const { user } = useAuth();
+  const currentStorageSize = user?.currentStorageSize || 0;
+  const maxStorageSize = user?.maxStorageSize || 1;
+  const storagePercent = Math.min((currentStorageSize / maxStorageSize) * 100, 100);
+  const storageIsNearLimit = currentStorageSize >= maxStorageSize * 0.9;
+
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-(--color-divider-strong) bg-(--color-sidebar-bg) backdrop-blur-xl">
       <div className="flex items-center gap-2 px-5 h-16 border-b border-(--color-divider-strong)">
@@ -80,12 +87,14 @@ export function Sidebar({ onNewFolderClick }) {
         </div>
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-(--color-hover-soft)">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-primary via-secondary-accent to-secondary"
-            style={{ width: "64%" }}
+            className={`h-full rounded-full transition-[width] duration-300 ${storageIsNearLimit ? "bg-danger" : "bg-gradient-to-r from-primary via-secondary-accent to-secondary"}`}
+            style={{ width: `${storagePercent}%` }}
           />
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-text-secondary">
-          <span>128 GB of 200 GB</span>
+          <span className={storageIsNearLimit ? "text-danger" : undefined}>
+            {formatStorageSize(currentStorageSize)} of {formatStorageSize(maxStorageSize)}
+          </span>
           <button className="text-primary hover:text-secondary-accent transition-colors">
             Upgrade
           </button>
@@ -93,6 +102,11 @@ export function Sidebar({ onNewFolderClick }) {
       </div>
     </aside>
   );
+}
+
+function formatStorageSize(bytes) {
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
 function NavRow({ item }) {
