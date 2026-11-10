@@ -11,22 +11,28 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
   GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
   RESEND_API_KEY: z.string().min(1, 'RESEND_API_KEY is required'),
-  AWS_ACCESS_KEY_ID: z.string().min(1, 'AWS_ACCESS_KEY_ID is required'),
-  AWS_SECRET_ACCESS_KEY: z.string().min(1, 'AWS_SECRET_ACCESS_KEY is required'),
   AWS_REGION: z.string().min(1, 'AWS_REGION is required'),
   AWS_BUCKET_NAME: z.string().min(1, 'AWS_BUCKET_NAME is required'),
-  AWS_ENDPOINT: z.url('AWS_ENDPOINT must be a valid URL'),
-  CLOUDFRONT_DOMAIN: z.string().min(1, 'CLOUDFRONT_DOMAIN is required'),
-  CLOUDFRONT_PRIVATE_KEY: z.string().min(1, 'CLOUDFRONT_PRIVATE_KEY is required'),
-  CLOUDFRONT_KEY_PAIR_ID: z.string().min(1, 'CLOUDFRONT_KEY_PAIR_ID is required'),
-  CLOUDFRONT_DISTRIBUTION_ID: z.string().min(1, 'CLOUDFRONT_DISTRIBUTION_ID is required'),
+  REDIS_URL: z.url('REDIS_URL must be a valid URL').min(1, 'REDIS_URL is required'),
+  CORS_ALLOWED_ORIGINS: z.string().default('').refine((origins) =>
+    origins.split(',').every((value) => {
+      const origin = value.trim();
+      if (!origin) return true;
+
+      try {
+        const parsed = new URL(origin);
+        return (parsed.protocol === 'https:' || parsed.protocol === 'http:') && parsed.origin === origin;
+      } catch {
+        return false;
+      }
+    }),
+  'CORS_ALLOWED_ORIGINS must be a comma-separated list of complete browser origins'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
-  console.error('Invalid environment variables:', z.treeifyError(parsedEnv.error));
-  process.exit(1);
+  throw new Error(`Invalid environment variables: ${JSON.stringify(z.treeifyError(parsedEnv.error))}`);
 }
 
 export const env = parsedEnv.data;

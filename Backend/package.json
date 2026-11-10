@@ -9,8 +9,10 @@
   "scripts": {
     "server": "node --watch ./dist/server.js",
     "build": "tsc --watch",
+    "build:lambda": "tsc --project tsconfig.json",
     "start": "npm run build && npm run server",
     "typecheck": "tsc --noEmit",
+    "test:lambda-cookies": "node --import tsx test/lambda-cookies.test.mjs",
     "dev": "tsx watch src/server.ts"
   },
   "dependencies": {
@@ -30,10 +32,11 @@
     "helmet": "^8.3.0",
     "mime-types": "^3.0.2",
     "mongoose": "^9.7.4",
-    "multer": "^2.2.0",
+    "multer": "^2.5.0",
     "redis": "^6.1.0",
     "resend": "^6.17.2",
-    "zod": "^4.4.3"
+    "serverless-http": "^4.0.0",
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@types/archiver": "^8.0.0",

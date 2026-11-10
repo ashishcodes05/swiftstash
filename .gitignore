@@ -1,0 +1,34 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/build/
+**/out/
+**/**/.vite/
+
+# Generated deployment artifacts
+Backend/deployment/*.zip
+
+# Logs, coverage, and local caches
+*.log
+**/coverage/
+**/.nyc_output/
+.npm/
+
+# Local application data
+**/Storage/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

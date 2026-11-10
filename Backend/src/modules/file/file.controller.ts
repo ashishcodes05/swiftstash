@@ -18,10 +18,10 @@ export class FileController {
         }
         const { action } = req.query;
         if (action && action == 'download') {
-            const url = await StorageService.getFileCloudFrontUrl(fileId, fileData.name, fileData.extension, action);
+            const url = await StorageService.getFileUrl(fileId, fileData.name, fileData.extension, action);
             return res.redirect(url);
         }
-        const url = await StorageService.getFileCloudFrontUrl(fileId, fileData.name, fileData.extension);
+        const url = await StorageService.getFileUrl(fileId, fileData.name, fileData.extension);
         return res.redirect(url);
     }
 

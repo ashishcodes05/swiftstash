@@ -57,7 +57,6 @@ export class FileService {
         if (!fileData.isUploading) {
             await UserRepository.updateStorageSize(userId, -fileData.size);
         }
-        await StorageService.invalidateCloudFrontCache([`${fileData._id}${fileData.extension}`]);
         return fileData;
     }
 
@@ -75,7 +74,6 @@ export class FileService {
         if (allocatedSize > 0) {
             await UserRepository.updateStorageSize(userId, -allocatedSize);
         }
-        await StorageService.invalidateCloudFrontCache(keys.map(file => file.Key));
         return true;
     }
 

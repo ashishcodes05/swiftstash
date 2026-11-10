@@ -38,9 +38,9 @@ export class OAuthService {
             return sessionId;
         }
         const mongooseSession = await mongoose.startSession();
+        const userId = new Types.ObjectId();
         try {
             mongooseSession.startTransaction();
-            const userId = new Types.ObjectId();
             const directoryData: DirectoryMetadata = {
                 _id: new Types.ObjectId(),
                 name: `root-${email}`,
@@ -62,14 +62,16 @@ export class OAuthService {
             await UserRepository.createUser(userData, mongooseSession);
             await DirectoryRepository.createDirectory(directoryData, mongooseSession);
             await mongooseSession.commitTransaction();
-            await SessionRepository.enforceDeviceLimit(userId.toString(), 2);
-            const sessionId = await SessionRepository.createSession(userId.toString(), 7 * 24 * 60 * 60);
-            return sessionId;
         } catch (err) {
-            await mongooseSession.abortTransaction();
+            if (mongooseSession.inTransaction()) {
+                await mongooseSession.abortTransaction();
+            }
             throw err;
         } finally {
-            mongooseSession.endSession();
+            await mongooseSession.endSession();
         }
+        await SessionRepository.enforceDeviceLimit(userId.toString(), 2);
+        const sessionId = await SessionRepository.createSession(userId.toString(), 7 * 24 * 60 * 60);
+        return sessionId;
     }
 }

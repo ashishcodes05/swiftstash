@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext.js";
 import MainLoader from "../components/MainLoader.jsx";
 import axiosClient from "../api/axiosInstance.js";
+import { getRestoredUser } from "../config/navigation.js";
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
@@ -11,12 +12,12 @@ export const AuthProvider = ({ children }) => {
         const fetchUser = async () => {
             try {
                 const response = await axiosClient.get("/auth/me");
-                if (response.data.success) {
-                    setUser(response.data.user);
-                    window.location.href = "http://localhost:5173"; 
-                }
+                setUser(getRestoredUser(response));
             } catch(error) {
-                console.error("Error fetching user:", error.response?.data || error.message);
+                setUser(null);
+                if (error.response?.status !== 401) {
+                    console.error("Error fetching user:", error.response?.data || error.message);
+                }
             } finally {
                 setIsLoading(false);
             }

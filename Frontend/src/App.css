@@ -92,3 +92,75 @@ input,
 div {
   transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
+
+::view-transition-group(root) {
+  animation-duration: 700ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  clip-path: circle(0 at var(--theme-reveal-x) var(--theme-reveal-y));
+  animation: theme-view-reveal 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes theme-view-reveal {
+  to {
+    clip-path: circle(var(--theme-reveal-radius) at var(--theme-reveal-x) var(--theme-reveal-y));
+  }
+}
+
+.theme-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  background: transparent;
+}
+
+.theme-reveal::after {
+  content: "";
+  position: absolute;
+  left: var(--theme-reveal-x);
+  top: var(--theme-reveal-y);
+  width: 0;
+  height: 0;
+  border: 2px solid var(--color-primary);
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  animation: theme-fallback-ripple 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes theme-fallback-ripple {
+  from {
+    width: 0;
+    height: 0;
+    opacity: 0.95;
+  }
+  to {
+    width: calc(var(--theme-reveal-radius) * 2);
+    height: calc(var(--theme-reveal-radius) * 2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+
+  .theme-reveal::after {
+    animation-duration: 1ms;
+  }
+}

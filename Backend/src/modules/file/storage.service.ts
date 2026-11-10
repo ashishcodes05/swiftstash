@@ -1,12 +1,9 @@
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getSignedUrl as getSignedUrlFromCloudFront } from "@aws-sdk/cloudfront-signer";
 import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "../../config/env.js";
 import { s3Client } from "../../config/s3client.js";
 import type { FileMetadata } from "./file.types.js";
 import { DirectoryRepository } from "../directory/directory.repository.js";
-import { CreateInvalidationCommand } from "@aws-sdk/client-cloudfront";
-import { cloudFrontClient } from "../../config/cloudFrontClient.js";
 
 export class StorageService {
     static async getFilePath(fileId: string, extension: string, parentDirectoryId: string, userId: string): Promise<string> {
@@ -57,43 +54,8 @@ export class StorageService {
             ResponseContentDisposition: `${action ? 'attachment' : 'inline'}; filename="${encodeURIComponent(fileName)}"`,
         })
         const url = await getSignedUrl(s3Client, command, {
-            signableHeaders: new Set(['Response-Content-Disposition']), 
             expiresIn: action ? 300 : 3600, 
         });
         return url;
-    }
-
-    static async getFileCloudFrontUrl(fileId: string, fileName: string, extension: string, action?: string): Promise<string> {
-        const cloudFrontDomain = env.CLOUDFRONT_DOMAIN;
-        const privateKey = env.CLOUDFRONT_PRIVATE_KEY;
-        const keyPairId = env.CLOUDFRONT_KEY_PAIR_ID;
-        const rawurl = `https://${cloudFrontDomain}/${fileId}${extension}?response-content-disposition=${encodeURIComponent(`${action ? 'attachment' : 'inline'}; filename="${fileName}"`)}`;
-
-        const signedUrl = getSignedUrlFromCloudFront({
-            url: rawurl,
-            keyPairId: keyPairId,
-            privateKey: privateKey,
-            dateLessThan: action ? new Date(Date.now() + 5 * 60 * 1000).toISOString() : new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-        });
-        return signedUrl;
-    }
-
-    static async invalidateCloudFrontCache(objectKeys: string[]): Promise<void> {
-        const distributionId = env.CLOUDFRONT_DISTRIBUTION_ID;
-        const itemsToInvalidate = objectKeys.map(objectKey => `/${objectKey}`);
-
-        const command = new CreateInvalidationCommand({
-            DistributionId: distributionId,
-            InvalidationBatch: {
-                CallerReference: `${Date.now()}-${Math.random()}`,
-                Paths: {
-                    Quantity: itemsToInvalidate.length,
-                    Items: itemsToInvalidate,
-                }
-            }
-        })
-
-        await cloudFrontClient.send(command);
-        console.log("CloudFront cache invalidated for deleted files.");
     }
 }

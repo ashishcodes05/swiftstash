@@ -84,7 +84,6 @@ export class DirectoryService {
             if (allocatedSize > 0) {
                 await UserRepository.updateStorageSize(userId, -allocatedSize);
             }
-            await StorageService.invalidateCloudFrontCache(uniqueFiles.map(file => `${file._id}${file.extension}`));
         }
         await DirectoryRepository.deleteManyDirectories(userId, directoryIds);
     }
@@ -116,7 +115,6 @@ export class DirectoryService {
             if (allocatedSize > 0) {
                 await UserRepository.updateStorageSize(userId, -allocatedSize);
             }
-            await StorageService.invalidateCloudFrontCache(uniqueFiles.map(file => `${file._id}${file.extension}`));
         }
         await DirectoryRepository.deleteManyDirectories(userId, allDirectoryIds);
     }

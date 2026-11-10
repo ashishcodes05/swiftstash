@@ -5,6 +5,8 @@ import { Link, useNavigate } from 'react-router';
 import { useGoogleLogin } from '@react-oauth/google';
 import axiosClient from '../api/axiosInstance';
 import { showStashToast } from '../utilities/toastConfig';
+import { postGoogleAuthCode } from '../api/googleAuth.js';
+import { getMainAppDriveUrl } from '../config/navigation.js';
 
 const PremiumLogin = () => {
   const [step, setStep] = useState(1);
@@ -137,7 +139,9 @@ const PremiumLogin = () => {
       });
       if (response.data.success) {
         showStashToast("Welcome Back", "Successfully logged in.", "success");
-        window.location.href = "http://localhost:5173/drive";
+        const driveUrl = getMainAppDriveUrl();
+        if (driveUrl) window.location.assign(driveUrl);
+        else showStashToast("Drive destination missing", "Set VITE_MAIN_APP_ORIGIN to open your workspace.", "warning");
       } else {
         showStashToast("Access Denied", "Invalid credentials. Please try again.", "error");
       }
@@ -156,16 +160,14 @@ const PremiumLogin = () => {
       try {
         setIsGoogleLoading(true);
         showStashToast("Authenticating", "Connecting via Google...");
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/google-login`, {
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST',
-          body: JSON.stringify({ code: response.code }),
-          credentials: 'include',
-        });
+        await postGoogleAuthCode(import.meta.env.VITE_BACKEND_URL, response.code);
         showStashToast("Welcome Back", "Successfully logged in with Google.", "success");
-        window.location.href = "http://localhost:5173/drive";
+        const driveUrl = getMainAppDriveUrl();
+        if (driveUrl) window.location.assign(driveUrl);
+        else showStashToast("Drive destination missing", "Set VITE_MAIN_APP_ORIGIN to open your workspace.", "warning");
       } catch (error) {
-        showStashToast("Authentication Failed", "Could not connect to Google.", "error");
+        const message = error.status ? error.message : "Could not connect to the authentication service.";
+        showStashToast("Authentication Failed", message, "error");
       } finally {
         setIsGoogleLoading(false);
       }

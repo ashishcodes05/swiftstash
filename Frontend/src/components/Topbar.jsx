@@ -19,6 +19,7 @@ import { UploadModal } from "./UploadModal";
 import { useAuth } from "../context/AuthContext";
 import axiosClient from "../api/axiosInstance";
 import { cancelFileUpload, completeFileUpload, initiateFileUpload } from "../api/fileService";
+import { getLandingLoginUrl } from "../config/navigation.js";
 
 function uploadOne({ item, parentDirectoryId, onProgress }) {
   let xhrInstance;
@@ -99,6 +100,7 @@ export function Topbar() {
   const fileInputRef = useRef(null);
   const folderInputRef = useRef(null);
   const profileMenuRef = useRef(null);
+  const themeToggleRef = useRef(null);
   const abortControllersRef = useRef({});
   const canceledItemsRef = useRef(new Set());
   const runningRef = useRef(false);
@@ -107,6 +109,7 @@ export function Topbar() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [themeMode, setThemeMode] = useState("dark");
+  const [themeReveal, setThemeReveal] = useState(null);
   const [items, setItems] = useState([]);
 
   const applyTheme = useCallback((nextTheme) => {
@@ -116,7 +119,32 @@ export function Topbar() {
   }, []);
 
   const toggleThemeMode = () => {
-    applyTheme(themeMode === "dark" ? "light" : "dark");
+    const nextTheme = themeMode === "dark" ? "light" : "dark";
+    const toggleBounds = themeToggleRef.current?.getBoundingClientRect();
+
+    if (!toggleBounds) {
+      applyTheme(nextTheme);
+      return;
+    }
+
+    const x = toggleBounds.left + toggleBounds.width / 2;
+    const y = toggleBounds.top + toggleBounds.height / 2;
+    const radius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    document.documentElement.style.setProperty("--theme-reveal-x", `${x}px`);
+    document.documentElement.style.setProperty("--theme-reveal-y", `${y}px`);
+    document.documentElement.style.setProperty("--theme-reveal-radius", `${radius}px`);
+
+    if (document.startViewTransition) {
+      document.startViewTransition(() => applyTheme(nextTheme));
+      return;
+    }
+
+    setThemeReveal({ x, y, radius, theme: nextTheme, key: Date.now() });
+    applyTheme(nextTheme);
   };
 
   const processQueue = useCallback(
@@ -222,7 +250,9 @@ export function Topbar() {
       console.error("Logout request failed:", error.response?.data || error.message);
     } finally {
       setUser(null);
-      window.location.href = "http://localhost:5174/login";
+      const loginUrl = getLandingLoginUrl();
+      if (loginUrl) window.location.assign(loginUrl);
+      else console.error("VITE_LANDING_ORIGIN must be configured to redirect to login.");
     }
   };
 
@@ -259,6 +289,18 @@ export function Topbar() {
 
   return (
     <>
+      {themeReveal && (
+        <span
+          key={themeReveal.key}
+          className={`theme-reveal theme-reveal-${themeReveal.theme}`}
+          style={{
+            "--theme-reveal-x": `${themeReveal.x}px`,
+            "--theme-reveal-y": `${themeReveal.y}px`,
+            "--theme-reveal-radius": `${themeReveal.radius}px`,
+          }}
+          onAnimationEnd={() => setThemeReveal(null)}
+        />
+      )}
       <header className="h-16 shrink-0 border-b border-(--color-divider-strong) bg-background/70 backdrop-blur-md flex items-center px-6 gap-4 sticky top-0 z-20">
         <div className="flex-1 max-w-xl relative">
           <Search className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
@@ -306,6 +348,7 @@ export function Topbar() {
           </button>
           <button
             onClick={toggleThemeMode}
+            ref={themeToggleRef}
             className="relative h-10 w-20 rounded-xl border border-border-subtle bg-card-bg/70 backdrop-blur-lg transition-colors hover:bg-card-bg"
             aria-label={`Switch to ${themeMode === "dark" ? "light" : "dark"} mode`}
             title={`Switch to ${themeMode === "dark" ? "light" : "dark"} mode`}

@@ -3,21 +3,26 @@ import type { NextFunction, Request, Response } from "express";
 const rateLimitMap = new Map<string, { tokens: number, lastUpdated: number }>();
 
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+let lastCleanup = Date.now();
 
-setInterval(() => {
-  const now = Date.now();
+// This in-memory limiter is scoped to one process and is not shared across Lambda instances.
+const cleanupStaleBuckets = (now: number) => {
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+
   for (const [identifier, bucket] of rateLimitMap.entries()) {
     if (now - bucket.lastUpdated > CLEANUP_INTERVAL_MS) {
       rateLimitMap.delete(identifier);
     }
   }
-}, CLEANUP_INTERVAL_MS);
+  lastCleanup = now;
+};
 
 export const rateLimiter = (options : {capacity: number, refillRate: number}) => {
     const { capacity, refillRate } = options;
     return (req : Request, res : Response, next : NextFunction) => {
         const ip = req.ip!;
         const now = Date.now();
+        cleanupStaleBuckets(now);
 
         if(!rateLimitMap.has(ip)){
             rateLimitMap.set(ip, { tokens: capacity, lastUpdated: now });

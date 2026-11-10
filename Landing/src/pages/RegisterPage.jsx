@@ -5,6 +5,8 @@ import { Link, useNavigate } from 'react-router';
 import { useGoogleLogin } from '@react-oauth/google';
 import axiosClient from '../api/axiosInstance';
 import { showStashToast } from '../utilities/toastConfig';
+import { postGoogleAuthCode } from '../api/googleAuth.js';
+import { getMainAppDriveUrl } from '../config/navigation.js';
 
 const RegisterPage = () => {
   const [step, setStep] = useState(1);
@@ -161,16 +163,14 @@ const RegisterPage = () => {
       try {
         setIsLoading(true);
         showStashToast("Authenticating", "Connecting via Google...");
-        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/v1/auth/google-login`, {
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST',
-          body: JSON.stringify({ code: response.code }),
-          credentials: 'include',
-        });
+        await postGoogleAuthCode(import.meta.env.VITE_BACKEND_URL, response.code);
         showStashToast("Account Created", "Successfully signed up with Google.", "success");
-        navigate("/login");
+        const driveUrl = getMainAppDriveUrl();
+        if (driveUrl) window.location.assign(driveUrl);
+        else showStashToast("Drive destination missing", "Set VITE_MAIN_APP_ORIGIN to open your workspace.", "warning");
       } catch (error) {
-        showStashToast("Authentication Failed", "Could not connect to Google.", "error");
+        const message = error.status ? error.message : "Could not connect to the authentication service.";
+        showStashToast("Authentication Failed", message, "error");
       } finally {
         setIsLoading(false);
       }

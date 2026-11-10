@@ -3,10 +3,7 @@ import { env } from './env.js';
 
 const s3Client = new S3Client({
     region: env.AWS_REGION,
-    credentials: {
-        accessKeyId: env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
-    },
+    endpoint: `https://s3.${env.AWS_REGION}.amazonaws.com`,
 });
 
 export { s3Client };
